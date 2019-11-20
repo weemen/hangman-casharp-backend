@@ -91,7 +91,8 @@ namespace HangmanBackend.Domain
         {
             if (this.GameOver)
             {
-                throw new DomainException("Game is already over");
+                throw new DomainException(
+                    $"[{this.gameId.ToString()}] Failed to apply GuessLetter command! {this.gameEndReason}");
             }
             // letter guessed and all letter guessed here
             if (this.word.Contains(command.Letter) && this.hasAllLettersGuessed(command.Letter))
@@ -137,7 +138,8 @@ namespace HangmanBackend.Domain
         {
             if (this.GameOver)
             {
-                throw new DomainException("Game is already over");
+                throw new DomainException(
+                    $"[{this.gameId.ToString()}] Failed to apply GuessWord command! {this.gameEndReason}");
             }
             
             if (command.Word == this.word)

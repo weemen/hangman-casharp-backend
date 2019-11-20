@@ -21,18 +21,12 @@ namespace HangmanBackend.Application
         public void handleGuessLetter(GuessLetter command, int expectedVersion)
         {
             //load aggregate and fire cmd
-            try
-            {
-                var aggregate = this.repository.Load(command.GameId) as Game;
-                aggregate.setExpectedPlayHead(expectedVersion);
-                aggregate.guessLetter(command);
-                this.repository.Save(aggregate);
-            } catch (DomainException ex)
-            {
-                Console.WriteLine("Domain Exception Caught");
-            }
-            
-        }
+            var aggregate = this.repository.Load(command.GameId) as Game; 
+            aggregate.setExpectedPlayHead(expectedVersion);
+            aggregate.guessLetter(command);
+            repository.Save(aggregate);
+
+         }
 
         public void handleGuessWord(GuessWord command, int expectedPlayHead)
         {
@@ -40,7 +34,7 @@ namespace HangmanBackend.Application
             var aggregate = this.repository.Load(command.GameId) as Game;
             aggregate.setExpectedPlayHead(expectedPlayHead);
             aggregate.guessWord(command);
-            this.repository.Save(aggregate);
+            repository.Save(aggregate);
         }
     }
 }

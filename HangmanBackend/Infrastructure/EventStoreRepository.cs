@@ -32,6 +32,7 @@ namespace HangmanBackend.Infrastructure
 
         public AggregateRoot Load(Guid streamId)
         {
+            Console.WriteLine($"[{streamId.ToString()}] Loading aggregate root");
             var aggregateType = Type.GetType(this.aggregateClass, true);
             dynamic aggregate = (Activator.CreateInstance(aggregateType)) as AggregateRoot;
             var streamEvents = new List<ResolvedEvent>();
@@ -61,7 +62,7 @@ namespace HangmanBackend.Infrastructure
                     eventFromStream.Event.Data.Length);
 
                 dynamic loadedEvent = eventType.GetMethod("Deserialize").Invoke(null, new object[] {json});
-                Console.WriteLine("Applying "+eventType.ToString());
+                Console.WriteLine($"[{streamId.ToString()}] Applying {eventType.ToString()}");
                 aggregate.Apply(loadedEvent);
             }
             return aggregate;

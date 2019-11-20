@@ -8,6 +8,7 @@ using EventStore.ClientAPI;
 using EventStore.ClientAPI.Exceptions;
 using HangmanBackend.Application;
 using HangmanBackend.Domain;
+using HangmanBackend.Exceptions;
 using HangmanBackend.Infrastructure;
 using Newtonsoft.Json;
 
@@ -17,8 +18,6 @@ namespace HangmanBackend
     {
         public static HttpListener listener;
         public static string url = "http://localhost:8000/";
-        public static int pageViews = 0;
-        public static int requestCount = 0;
         public static string pageData = 
             "<!DOCTYPE>" +
             "<html>" +
@@ -26,10 +25,7 @@ namespace HangmanBackend
             "    <title>HttpListener Example</title>" +
             "  </head>" +
             "  <body>" +
-            "    <p>Page Views: {0}</p>" +
-            "    <form method=\"post\" action=\"shutdown\">" +
-            "      <input type=\"submit\" value=\"Shutdown\" {1}>" +
-            "    </form>" +
+            "    <p>{0}</p>" +
             "  </body>" +
             "</html>";
         
@@ -47,8 +43,11 @@ namespace HangmanBackend
                 HttpListenerRequest req = ctx.Request;
                 HttpListenerResponse resp = ctx.Response;
 
+                // Set default Response values
+                var responseCode = 200;
+                var responseMessage = "OK";
+                
                 // Print out some info about the request
-                Console.WriteLine("Request #: {0}", ++requestCount);
                 Console.WriteLine(req.Url.ToString());
                 Console.WriteLine(req.HttpMethod);
                 Console.WriteLine(req.UserHostName);
@@ -60,10 +59,6 @@ namespace HangmanBackend
                     Console.WriteLine("Shutdown requested");
                     runServer = false;
                 }
-
-                // Make sure we don't increment the page views counter if `favicon.ico` is requested
-                if (req.Url.AbsolutePath != "/favicon.ico")
-                    pageViews += 1;
 
                 var guid = req.Url.AbsolutePath.Replace("/hangman/", "");
                 if (req.HttpMethod == "POST" && Guid.TryParse(guid, out var gameId))
@@ -77,41 +72,55 @@ namespace HangmanBackend
                     Console.WriteLine(body.command);
 
                     const int DEFAULTPORT = 1113;
-                    var settings = ConnectionSettings.Create();//.EnableVerboseLogging().UseConsoleLogger();
+                    var settings = ConnectionSettings.Create();
                     var conn = EventStoreConnection.Create(settings, new IPEndPoint(IPAddress.Loopback, DEFAULTPORT));
                     conn.ConnectAsync().Wait();
                     var cmdHandler = new HangmanCommandHandler(new EventStoreRepository(conn, "HangmanBackend.Domain.Game"));
-                    switch (body.command.ToString())
+
+                    try
                     {
-                        case "StartGame":
-                            Console.WriteLine("StartGameCommand");
-                            try
-                            {
-                                cmdHandler.handleStartGame(new StartGame(gameId, new Guid(), "word", DifficultySetting.EASY));
-                            }
-                            catch (System.AggregateException ex)
-                            {
-                                Console.WriteLine("Game already exists! Cannot start same game twice.\n" + ex.Message);
-                            }
-                            break;
-                        case "GuessLetter":
-                            cmdHandler.handleGuessLetter(new GuessLetter(gameId, (char) body.letter), (int) body.version);
-                            break;
-                        case "GuessWord":
-                            cmdHandler.handleGuessWord(new GuessWord(gameId, body.word.ToString()), (int) body.version);
-                            break;
-                        default:
-                            Console.WriteLine("Command not found");
-                            break;
+                        switch (body.command.ToString())
+                        {
+                            case "StartGame":
+                                cmdHandler.handleStartGame(new StartGame(gameId, new Guid(), "word",
+                                    DifficultySetting.EASY));
+
+                                break;
+                            case "GuessLetter":
+                                cmdHandler.handleGuessLetter(new GuessLetter(gameId, (char) body.letter),
+                                    (int) body.version);
+                                break;
+                            case "GuessWord":
+                                cmdHandler.handleGuessWord(new GuessWord(gameId, body.word.ToString()),
+                                    (int) body.version);
+                                break;
+                            default:
+                                Console.WriteLine("Command not found");
+                                break;
+                        }
                     }
+                    catch (System.AggregateException ex)
+                    {
+                        responseCode = 400;
+                        responseMessage = $"Game already exists! Cannot start same game twice: {ex.Message}";
+                        Console.WriteLine(responseMessage);
+                    }
+                    catch (DomainException ex)
+                    {
+                        responseCode = 400;
+                        responseMessage = $"Domain Error: {ex.Message}";
+                        Console.WriteLine(responseMessage);
+                    }
+                    
                 }
 
                 // Write the response info
                 string disableSubmit = !runServer ? "disabled" : "";
-                byte[] data = Encoding.UTF8.GetBytes(String.Format(pageData, pageViews, disableSubmit));
+                byte[] data = Encoding.UTF8.GetBytes(String.Format(pageData, responseMessage, disableSubmit));
                 resp.ContentType = "text/html";
                 resp.ContentEncoding = Encoding.UTF8;
                 resp.ContentLength64 = data.LongLength;
+                resp.StatusCode = responseCode;
 
                 // Write out to the response stream (asynchronously), then close it
                 await resp.OutputStream.WriteAsync(data, 0, data.Length);

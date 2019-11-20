@@ -1,0 +1,118 @@
+{
+	"info": {
+		"_postman_id": "e9b811bb-e9e7-4bf1-88f4-51e1733ee392",
+		"name": "EventStore Hangman",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Hangman - StartGame",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"command\": \"StartGame\",\n  \"level\":0\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8000/hangman/E6FEE321-E2D7-4D3A-9CA8-E20DF2797902",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"hangman",
+						"E6FEE321-E2D7-4D3A-9CA8-E20DF2797902"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Hangman - GuessLetter - Incorrect",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"command\": \"GuessLetter\",\n  \"letter\":\"e\",\n  \"version\": 0\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8000/hangman/E6FEE321-E2D7-4D3A-9CA8-E20DF2797902",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"hangman",
+						"E6FEE321-E2D7-4D3A-9CA8-E20DF2797902"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Hangman - GuessWord - Incorrect",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"command\": \"GuessWord\",\n  \"letter\":\"volleyball\",\n  \"version\": 1\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8000/hangman/E6FEE321-E2D7-4D3A-9CA8-E20DF2797902",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"hangman",
+						"E6FEE321-E2D7-4D3A-9CA8-E20DF2797902"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"protocolProfileBehavior": {}
+}

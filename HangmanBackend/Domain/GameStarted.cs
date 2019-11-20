@@ -4,7 +4,7 @@ using Newtonsoft.Json;
 namespace HangmanBackend.Domain
 {
     
-    public class GameStarted : DomainEventBase
+    public class GameStarted : DomainEvent
     {
         private string accountId;
         private string gameId;
@@ -26,5 +26,16 @@ namespace HangmanBackend.Domain
         public string Word => word;
 
         public int Level => level;
+        
+        public string Serialize(DomainEvent domainEvent)
+        {
+            return JsonConvert.SerializeObject(this);
+        }
+
+        public static GameStarted Deserialize(string json)
+        {
+            dynamic obj = JsonConvert.DeserializeObject(json);
+            return new GameStarted((string) obj.AccountId, (string) obj.GameId, (string) obj.Word, (int) obj.Level);
+        }
     }
 }

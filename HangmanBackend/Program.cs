@@ -80,20 +80,25 @@ namespace HangmanBackend
                     var settings = ConnectionSettings.Create();//.EnableVerboseLogging().UseConsoleLogger();
                     var conn = EventStoreConnection.Create(settings, new IPEndPoint(IPAddress.Loopback, DEFAULTPORT));
                     conn.ConnectAsync().Wait();
+                    var cmdHandler = new HangmanCommandHandler(new EventStoreRepository(conn, "HangmanBackend.Domain.Game"));
                     switch (body.command.ToString())
                     {
                         case "StartGame":
                             Console.WriteLine("StartGameCommand");
                             try
                             {
-                                var command = new StartGame(gameId, new Guid(), "word", DifficultySetting.EASY);
-                                var cmdHandler = new HangmanCommandHandler(new EventStoreRepository(conn, "Game"));
-                                cmdHandler.handleStartGame(command);
+                                cmdHandler.handleStartGame(new StartGame(gameId, new Guid(), "word", DifficultySetting.EASY));
                             }
-                            catch (System.AggregateException)
+                            catch (System.AggregateException ex)
                             {
-                                Console.WriteLine("Game already exists! Cannot start same game twice.");
+                                Console.WriteLine("Game already exists! Cannot start same game twice.\n" + ex.Message);
                             }
+                            break;
+                        case "GuessLetter":
+                            cmdHandler.handleGuessLetter(new GuessLetter(gameId, (char) body.letter), (int) body.version);
+                            break;
+                        case "GuessWord":
+                            cmdHandler.handleGuessWord(new GuessWord(gameId, body.word.ToString()), (int) body.version);
                             break;
                         default:
                             Console.WriteLine("Command not found");

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using EventStore.ClientAPI;
 using HangmanBackend.Application;
+using HangmanBackend.Exceptions;
 using Newtonsoft.Json;
 
 namespace HangmanBackend.Domain
@@ -19,7 +20,7 @@ namespace HangmanBackend.Domain
     {
         //should be in a base class
         protected List<EventData> uncommittedEvents = new List<EventData>();
-        protected int playHead;
+        protected int playHead = -1;
         
         private string accountId;
         private string gameId;
@@ -29,8 +30,8 @@ namespace HangmanBackend.Domain
         private bool GameOver;
         private int triesRemaining;
         private string gameEndReason;
-        private char[] guessedLetters;
-        private char[] missGuessedLetters;
+        private List<char> guessedLetters;
+        private List<char> missGuessedLetters;
 
         public Guid getAggregateRootId()
         {
@@ -42,6 +43,11 @@ namespace HangmanBackend.Domain
             return uncommittedEvents;
         }
 
+        public void setExpectedPlayHead(int expectedPlayHead)
+        {
+            this.playHead = expectedPlayHead;
+        }
+        
         public int getPlayHead()
         {
             return this.playHead;
@@ -56,8 +62,8 @@ namespace HangmanBackend.Domain
                 true,
                 Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(gameEvent)),
                 Encoding.UTF8.GetBytes("{}")));
-            
             this.Apply((dynamic) gameEvent);
+            this.playHead++;
         }
         
         public static Game StartGame(Guid accountId, Guid gameId, string word, DifficultySetting level)
@@ -67,8 +73,11 @@ namespace HangmanBackend.Domain
             return game;
         }
         
-        private void Apply(GameStarted gameEvent)
+        public void Apply(GameStarted gameEvent)
         {
+            this.guessedLetters = new List<char>();
+            this.missGuessedLetters = new List<char>();
+            
             this.gameId = gameEvent.GameId;
             this.accountId = gameEvent.AccountId;
             this.word = gameEvent.Word;
@@ -80,7 +89,10 @@ namespace HangmanBackend.Domain
 
         public void guessLetter(GuessLetter command)
         {
-
+            if (this.GameOver)
+            {
+                throw new DomainException("Game is already over");
+            }
             // letter guessed and all letter guessed here
             if (this.word.Contains(command.Letter) && this.hasAllLettersGuessed(command.Letter))
             {
@@ -104,17 +116,17 @@ namespace HangmanBackend.Domain
         private bool hasAllLettersGuessed(char letter)
         {
             var charactersInWord = this.word.ToCharArray();
-            var guessedLetters = (char[]) this.guessedLetters.Clone();
+            var guessedLetters = new List<char>(this.guessedLetters);
             guessedLetters.Append(letter);
             return !charactersInWord.Except(guessedLetters).Any();
         }
         
-        private void Apply(LetterGuessed gameEvent)
+        public void Apply(LetterGuessed gameEvent)
         {
             this.guessedLetters.Append(gameEvent.Letter);
         }
         
-        private void Apply(LetterNotGuessed gameEvent)
+        public void Apply(LetterNotGuessed gameEvent)
         {
             // reduce tries
             this.triesRemaining--;
@@ -123,6 +135,11 @@ namespace HangmanBackend.Domain
 
         public void guessWord(GuessWord command)
         {
+            if (this.GameOver)
+            {
+                throw new DomainException("Game is already over");
+            }
+            
             if (command.Word == this.word)
             {
                 this.Record(new WordGuessed(command.Word));
@@ -135,25 +152,25 @@ namespace HangmanBackend.Domain
             }
         }
         
-        private void Apply(WordGuessed gameEvent)
+        public void Apply(WordGuessed gameEvent)
         {
             this.triesRemaining--;
             this.GameOver = true;
         }
 
-        private void Apply(WordNotGuessed gameEvent)
+        public void Apply(WordNotGuessed gameEvent)
         {
             this.triesRemaining--;
             this.GameOver = true;
         }
         
-        private void Apply(GameWon gameEvent)
+        public void Apply(GameWon gameEvent)
         {
             this.GameOver = true;
             this.gameEndReason = gameEvent.Reason;
         }
 
-        private void Apply(GameLost gameEvent)
+        public void Apply(GameLost gameEvent)
         {
             this.GameOver = true;
             this.gameEndReason = gameEvent.Reason;

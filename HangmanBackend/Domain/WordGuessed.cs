@@ -13,14 +13,15 @@ namespace HangmanBackend.Domain
 
         public string Word => word;
         
-        public string serialize(DomainEvent domainEvent)
+        public string Serialize(DomainEvent domainEvent)
         {
             return JsonConvert.SerializeObject(this);
         }
 
-        public DomainEvent deserialize(string json)
+        public static WordGuessed Deserialize(string json)
         {
-            return JsonConvert.DeserializeObject<WordGuessed>(json);
+            dynamic obj = JsonConvert.DeserializeObject(json);
+            return new WordGuessed((string) obj.Word);
         }
     }
 }

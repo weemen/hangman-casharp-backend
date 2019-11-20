@@ -13,14 +13,15 @@ namespace HangmanBackend.Domain
 
         public string Reason => reason;
         
-        public string serialize(DomainEvent domainEvent)
+        public string Serialize(DomainEvent domainEvent)
         {
             return JsonConvert.SerializeObject(this);
         }
 
-        public DomainEvent deserialize(string json)
+        public static GameWon Deserialize(string json)
         {
-            return JsonConvert.DeserializeObject<GameWon>(json);
+            dynamic obj = JsonConvert.DeserializeObject(json);
+            return new GameWon((string) obj.Reason);
         }
     }
 }

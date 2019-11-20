@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using EventStore.ClientAPI;
 using HangmanBackend.Domain;
@@ -32,23 +34,35 @@ namespace HangmanBackend.Infrastructure
         {
             var aggregateType = Type.GetType(this.aggregateClass, true);
             dynamic aggregate = (Activator.CreateInstance(aggregateType)) as AggregateRoot;
-            var streamEvents =
-                this.connection.ReadStreamEventsForwardAsync(
-                    streamId.ToString(), 0, 1, false).Result;
+            var streamEvents = new List<ResolvedEvent>();
 
-            foreach (var eventFromStream in streamEvents.Events)
+            StreamEventsSlice currentSlice;
+            var nextSliceStart = StreamPosition.Start;
+            do
             {
-                var eventName = eventFromStream.Event.EventType;
-                var eventType = Type.GetType(eventName,true);
-                var domainEvent = (Activator.CreateInstance(eventType));
-                var method = domainEvent.GetType().GetMethod("deserialize");
-                var args = new object[] { 
-                    Encoding.UTF8.GetString(
-                        streamEvents.Events[0].Event.Data, 
-                        0, 
-                        streamEvents.Events[0].Event.Data.Length) 
-                };
-                aggregate.Apply(method.Invoke(domainEvent, args));
+                currentSlice =
+                    this.connection.ReadStreamEventsForwardAsync(
+                            streamId.ToString(), 
+                            nextSliceStart, 
+                            200, 
+                            false).Result;
+
+                nextSliceStart = (int) currentSlice.NextEventNumber;
+
+                streamEvents.AddRange(currentSlice.Events);
+            } while (!currentSlice.IsEndOfStream);
+            
+            foreach (var eventFromStream in streamEvents)
+            {
+                var eventType = Type.GetType(eventFromStream.Event.EventType,true);
+                var json = Encoding.UTF8.GetString(
+                    eventFromStream.Event.Data,
+                    0,
+                    eventFromStream.Event.Data.Length);
+
+                dynamic loadedEvent = eventType.GetMethod("Deserialize").Invoke(null, new object[] {json});
+                Console.WriteLine("Applying "+eventType.ToString());
+                aggregate.Apply(loadedEvent);
             }
             return aggregate;
         }

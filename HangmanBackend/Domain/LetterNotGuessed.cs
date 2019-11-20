@@ -1,3 +1,4 @@
+using System;
 using Newtonsoft.Json;
 
 namespace HangmanBackend.Domain
@@ -13,14 +14,15 @@ namespace HangmanBackend.Domain
 
         public char Letter => letter;
         
-        public string serialize(DomainEvent domainEvent)
+        public string Serialize(DomainEvent domainEvent)
         {
             return JsonConvert.SerializeObject(this);
         }
 
-        public DomainEvent deserialize(string json)
+        public static LetterNotGuessed Deserialize(string json)
         {
-            return JsonConvert.DeserializeObject<LetterGuessed>(json);
+            dynamic obj = JsonConvert.DeserializeObject(json);
+            return new LetterNotGuessed((char) obj.Letter);
         }
     }
 }

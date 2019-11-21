@@ -75,7 +75,7 @@ namespace HangmanBackend
                     var settings = ConnectionSettings.Create();
                     var conn = EventStoreConnection.Create(settings, new IPEndPoint(IPAddress.Loopback, DEFAULTPORT));
                     conn.ConnectAsync().Wait();
-                    var cmdHandler = new HangmanCommandHandler(new EventStoreRepository(conn, "HangmanBackend.Domain.Game"));
+                    var cmdHandler = new HangmanCommandHandler(new EventStoreRepository<HangmanBackend.Domain.Game>(conn));
 
                     try
                     {

@@ -9,10 +9,12 @@ namespace HangmanBackend.Infrastructure
     public class EventStoreRepository<TAggregate> where TAggregate : AggregateRoot
     {
         private IEventStoreConnection connection;
-
-        public EventStoreRepository(IEventStoreConnection connection)
+        private string streamCategory;
+        
+        public EventStoreRepository(IEventStoreConnection connection, string streamCategory)
         {
             this.connection = connection;
+            this.streamCategory = streamCategory;
         }
 
         public void Save(TAggregate aggregateRoot)
@@ -22,7 +24,7 @@ namespace HangmanBackend.Infrastructure
 
             foreach (var domainEvent in uncommittedEvents)
             {
-                this.connection.AppendToStreamAsync(aggregateRoot.getAggregateRootId().ToString(),
+                this.connection.AppendToStreamAsync($"{this.streamCategory}-${aggregateRoot.getAggregateRootId().ToString()}",
                     originalPlayHead, domainEvent).Wait();
                 originalPlayHead++;
             }
@@ -53,7 +55,7 @@ namespace HangmanBackend.Infrastructure
 
             dynamic aggregate = Activator.CreateInstance<TAggregate>();
 
-            foreach (var eventFromStream in LoadEvents(streamId.ToString()))
+            foreach (var eventFromStream in LoadEvents($"{this.streamCategory}-${streamId.ToString()}"))
             {
                 var eventType = Type.GetType(eventFromStream.Event.EventType,true);
                 var json = Encoding.UTF8.GetString(
